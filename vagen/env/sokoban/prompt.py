@@ -49,16 +49,12 @@ Decide your next action(s).
 valid_action_template = """Valid action extracted from your answer is {valid_action}.\
 After that, the observation is:
 {observation}
-reward: {reward}
-done: {done}
 Decide your next action(s).
 """
 
 invalid_action_template = """Your response has invalid format. You stay at the same position.
 The observation is:
 {observation}
-reward: {reward}
-done: {done}
 Decide your next action(s).
 STRICTLY follow the format:
 <think>...</think><answer>...</answer>

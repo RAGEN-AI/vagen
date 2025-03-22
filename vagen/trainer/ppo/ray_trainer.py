@@ -108,8 +108,10 @@ def apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.AdaptiveKLController, 
     response_length = responses.size(1)
     token_level_scores = data.batch['token_level_scores']
     batch_size = data.batch.batch_size[0]
-    attention_mask = data.batch['attention_mask']
-    response_mask = attention_mask[:, -response_length:]
+    if 'loss_mask' in data.batch.keys():
+        response_mask = data.batch['loss_mask'][:, -response_length:]
+    else:
+        response_mask = data.batch['attention_mask'][:, -response_length:]
 
     # compute kl between ref_policy and current policy
     if 'ref_log_prob' in data.batch.keys():
