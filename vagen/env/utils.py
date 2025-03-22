@@ -133,7 +133,8 @@ def postprocess(
     done: bool,
     info: Dict,
     preprocess_result: PreprocessResult,
-    action_template: str,
+    valid_action_template: str,
+    invalid_action_template: str,
     action_lookup: Dict = None,
 ) -> Tuple[Dict, float, bool, Dict]:
     """Postprocess the environment feedback to obs, reward, done, info
@@ -146,7 +147,8 @@ def postprocess(
         info: extra info
         preprocess_result: preprocess result
         action_lookup: action lookup to convert action space to text
-        text_template: text template
+        valid_action_template: text template for valid action
+        invalid_action_template: text template for invalid action
 
     Returns:
         Tuple[Dict, float, bool, Dict]: observation, reward, done, info
@@ -164,12 +166,19 @@ def postprocess(
             valid_action.append(action_lookup[action])
 
     observation = IMAGE_PLACEHOLDER if not isinstance(env_state, str) else env_state
-    text_template = action_template.format(
-        valid_action=valid_action,
-        observation=observation,
-        reward=reward,
-        done=done,
-    )
+    if len(valid_action) > 0:
+        text_template = valid_action_template.format(
+            valid_action=valid_action,
+            observation=observation,
+            reward=reward,
+            done=done,
+        )
+    else:
+        text_template = invalid_action_template.format(
+            observation=observation,
+            reward=reward,
+            done=done,
+        )
 
     if isinstance(env_state, str):
         obs = {'text_template': text_template}
