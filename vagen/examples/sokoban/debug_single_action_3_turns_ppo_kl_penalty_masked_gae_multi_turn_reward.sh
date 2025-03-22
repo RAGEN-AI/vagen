@@ -14,7 +14,7 @@ python -m vagen.env.sokoban.create_dataset \
     --train_ratio 0.8 \
     --max_action_per_step 1 \
     --max_action_penalty 0.0 \
-    --format_reward 0 \
+    --format_reward 0.1 \
     --format_penalty -0.5 \
     --n_candidate 50000 \
     --force-gen
@@ -53,8 +53,8 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.rollout.enforce_eager=False \
     actor_rollout_ref.rollout.free_cache_engine=False \
     actor_rollout_ref.rollout.n=1 \
-    actor_rollout_ref.rollout.temperature=0.7 \
-    actor_rollout_ref.rollout.top_p=0.95 \
+    actor_rollout_ref.rollout.temperature=1 \
+    actor_rollout_ref.rollout.top_p=1 \
     +actor_rollout_ref.ref.use_ref=True \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=1 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
@@ -69,7 +69,7 @@ python3 -m vagen.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='vagen' \
-    trainer.experiment_name='debug_single_action_3_turns_ppo_1.5B_masked_gae_multi_turn_reward_temp_0.7_top_p_0.95' \
+    trainer.experiment_name='debug_single_action_3_turns_ppo_1.5B_masked_gae_temp_1_top_p_1' \
     trainer.n_gpus_per_node=2 \
     trainer.nnodes=1 \
     trainer.save_freq=400 \
@@ -80,5 +80,5 @@ python3 -m vagen.trainer.main_ppo \
     rollout_manager.max_turns=3 \
     rollout_manager.window_size=5 \
     rollout_manager.n_trajectory=1 \
-    rollout_manager.use_multi_turn_reward=True \
-    2>&1 | tee debug_single_action_3_turns_ppo_1.5B_masked_gae_multi_turn_reward_temp_0.7_top_p_0.95.log
+    rollout_manager.use_multi_turn_reward=False \
+    2>&1 | tee debug_single_action_3_turns_ppo_1.5B_masked_gae_temp_1_top_p_1.log

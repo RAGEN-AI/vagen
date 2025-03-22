@@ -27,6 +27,7 @@ One move: -0.1
 Box on target: +1.0
 All boxes placed: +10.0
 Format incorrect: {format_penalty}
+Format correct: {format_reward}
 
 Please think step by step and provide the action(s) you want to take.
 Wrap your thought between `<think>` and `</think>` tags, then wrap the action(s) between `<answer>` and `</answer>` tags.
@@ -52,7 +53,7 @@ After that, the observation is:
 Decide your next action(s).
 """
 
-invalid_action_template = """Your response has invalid format. You stay at the same position.
+invalid_action_template = """Invalid response. You stay at the same position.
 The observation is:
 {observation}
 Decide your next action(s).

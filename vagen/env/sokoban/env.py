@@ -340,14 +340,16 @@ class SokobanInterface(BaseInterface):
         )
         interface_config_str = (
             f"SokobanInterface(max_action_per_step={interface_config.get('max_action_per_step', 1)}, "
-            f"max_action_penalty={interface_config.get('max_action_penalty', -0.1)}, "
-            f"format_reward={interface_config.get('format_reward', 0.5)})"
+            f"max_action_penalty={interface_config.get('max_action_penalty', 0)}, "
+            f"format_reward={interface_config.get('format_reward', 0)}, "
+            f"format_penalty={interface_config.get('format_penalty', 0)})"
         )
         return f"{env_config_str}, {interface_config_str}"
     def get_task_instruction(self) -> str:
         return instruction_template.format(
             max_action_per_step=self.interface_config['max_action_per_step'],
             format_penalty=self.interface_config['format_penalty'],
+            format_reward=self.interface_config['format_reward'],
         )
     
     def get_traj_reward(self):

@@ -14,7 +14,7 @@ python -m vagen.env.sokoban.create_dataset \
     --train_ratio 0.8 \
     --max_action_per_step 1 \
     --max_action_penalty 0.0 \
-    --format_reward 0 \
+    --format_reward 0.1 \
     --format_penalty -0.5 \
     --n_candidate 50000 \
     --force-gen
