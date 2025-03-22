@@ -37,7 +37,7 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.model.path=Qwen/Qwen2.5-1.5B-Instruct \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=False \
-    actor_rollout_ref.actor.ppo_mini_batch_size=64 \
+    actor_rollout_ref.actor.ppo_mini_batch_size=32 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=1 \
     actor_rollout_ref.actor.use_kl_loss=False \
     actor_rollout_ref.actor.kl_loss_coef=0.001 \
@@ -73,12 +73,12 @@ python3 -m vagen.trainer.main_ppo \
     trainer.n_gpus_per_node=2 \
     trainer.nnodes=1 \
     trainer.save_freq=400 \
-    trainer.test_freq=5 \
+    trainer.test_freq=10 \
     trainer.total_epochs=15 \
     trainer.val_before_train=True \
     trainer.val_generations_to_log_to_wandb=8 \
     rollout_manager.max_turns=3 \
     rollout_manager.window_size=5 \
-    rollout_manager.n_trajectory=2 \
+    rollout_manager.n_trajectory=1 \
     rollout_manager.use_multi_turn_reward=True \
     2>&1 | tee debug_single_action_3_turns_ppo_1.5B_masked_gae_multi_turn_reward_temp_0.7_top_p_0.95.log
