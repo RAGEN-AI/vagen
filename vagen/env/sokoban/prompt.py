@@ -1,53 +1,36 @@
-system_prompt = """
-You are a helpful assistant. You first think about the reasoning process in the mind and then provides the user with the answer.
-"""
+instruction_template = """You are a Sokoban solver. Push all boxes (X) onto targets (O).
 
-instruction_template = """You are a Sokoban solver.
-
-Sokoban Quick Guide
-Goal: Push all boxes (X) onto targets (O).
-
-Symbols:
-# Wall | _ Floor | O Target | X Box | P You | √ = Box on Target | S = You on Target
-The observation is a 2D grid of the current state of the Sokoban game.
+Symbols: # Wall | _ Floor | O Target | X Box | P You | √ Box on Target | S You on Target
 
 Rules:
-1. Push boxes (can't pull).
-2. Avoid walls (#).
+- Push boxes only (no pulling)
+- Use actions: Up, Down, Left, Right (max {max_action_per_step} per turn)
 
-Actions you can take: Up, Down, Left, Right. You can take up to {max_action_per_step} action(s) at a time.
-Up: move up to the cell above (to the above row).
-Down: move down to the cell below (to the below row).
-Left: move left to the cell to the left (to the left column).
-Right: move right to the cell to the right (to the right column).
+Rewards: -0.1 per move | +1.0 box on target | +10.0 all boxes placed | Format: {format_reward}/{format_penalty} (correct/incorrect)
 
-Rewards:
-Box on target: +1.0
-All boxes placed: +10.0
-Format correct: +0.5
-
-Please think step by step and provide the actions you want to take.
-Your reponse should be in the format of <think>...</think><answer>...</answer>
+Respond with:
+<think>...</think><answer>...</answer>
 """
-# E.g. <think> There's a box on the upper right of me, the target is on the upper side of the box, I need to push the box it upward. </think><answer> Right,Up,Up </answer>
-# Let's try to use a format reward and answer reward
-# If the reponse provides a final answer and is corect, the model receives an accurtacy reward of +1
-# is the response encloses its thinking in <think></think> and the final answer is <answer></answer> tags, the model receives a format reward of +1
-
 
 
 init_observation_template = """
 [Initial Observation]:
 {observation}
 Decide your next action(s).
-Your reponse should be in the format of <think>...</think><answer>...</answer>
 """
 
-action_template = """After your answer, the extracted valid action is {valid_action}.\
+valid_action_template = """Valid action extracted from your response is {valid_action}.\
 After that, the observation is:
 {observation}
 reward: {reward}
 done: {done}
 Decide your next action(s).
-Your reponse should be in the format of <think>...</think><answer>...</answer>
+"""
+
+invalid_action_template = """Invalid response. You stay at the same position.
+The observation is:
+{observation}
+reward: {reward}
+done: {done}
+Decide your next action(s).
 """

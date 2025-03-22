@@ -23,8 +23,9 @@ from vagen.env.utils import (
 )
 from vagen.env.sokoban.prompt import (
     init_observation_template,
-    action_template,
     instruction_template,
+    valid_action_template,
+    invalid_action_template,
 )
 
 
@@ -93,11 +94,6 @@ class SokobanEnv(BaseEnv, GymSokobanEnv):
         TODO modify here after definition of RolloutManager
         """
         assert not self.success()
-        result = {
-            'step_reward': 0,
-            'done': False,
-            'info': {},
-        }
         
         prev_player_position = self.player_position
         obs, step_reward, done, info = GymSokobanEnv.step(self, action, observation_mode='tiny_rgb_array')
@@ -184,12 +180,14 @@ class SokobanInterface(BaseInterface):
         self.visual_env = self.env_config.get('visual_env', True)
 
         max_action_per_step = interface_config.setdefault('max_action_per_step', 1)
-        max_action_penalty = interface_config.setdefault('max_action_penalty', -0.5)
-        format_reward = interface_config.setdefault('format_reward', 0.5)
+        max_action_penalty = interface_config.setdefault('max_action_penalty', 0.0)
+        format_reward = interface_config.setdefault('format_reward', 0.0)
+        format_penalty = interface_config.setdefault('format_penalty', 0.0)
         self.interface_config = {
             'max_action_per_step': max_action_per_step,
             'max_action_penalty': max_action_penalty,
             'format_reward': format_reward,
+            'format_penalty': format_penalty,
         }
         
     @classmethod
@@ -252,6 +250,8 @@ class SokobanInterface(BaseInterface):
         # parse format and action list
         if action_list:
             reward += self.interface_config['format_reward']
+        else:
+            reward += self.interface_config['format_penalty']
         if len(action_list) > self.interface_config['max_action_per_step']:
             reward += self.interface_config['max_action_penalty']
             action_list = action_list[:self.interface_config['max_action_per_step']]
@@ -278,7 +278,8 @@ class SokobanInterface(BaseInterface):
             info=final_info,
             preprocess_result=preprocess_result,
             action_lookup=self.ACTION_LOOKUP,
-            action_template=action_template,
+            valid_action_template=valid_action_template,
+            invalid_action_template=invalid_action_template,
         )
     
     def _reset(self, seed: Optional[int] = None) -> Tuple[Dict, Dict]:
@@ -339,13 +340,16 @@ class SokobanInterface(BaseInterface):
         )
         interface_config_str = (
             f"SokobanInterface(max_action_per_step={interface_config.get('max_action_per_step', 1)}, "
-            f"max_action_penalty={interface_config.get('max_action_penalty', -0.1)}, "
-            f"format_reward={interface_config.get('format_reward', 0.5)})"
+            f"max_action_penalty={interface_config.get('max_action_penalty', 0.0)}, "
+            f"format_reward={interface_config.get('format_reward', 0.0)}, "
+            f"format_penalty={interface_config.get('format_penalty', 0.0)})"
         )
         return f"{env_config_str}, {interface_config_str}"
     def get_task_instruction(self) -> str:
         return instruction_template.format(
-            max_action_per_step=self.interface_config['max_action_per_step']
+            max_action_per_step=self.interface_config['max_action_per_step'],
+            format_reward=self.interface_config['format_reward'],
+            format_penalty=self.interface_config['format_penalty'],
         )
     
     def get_traj_reward(self):
