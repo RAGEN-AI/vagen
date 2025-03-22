@@ -110,7 +110,10 @@ def apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.AdaptiveKLController, 
     token_level_scores = data.batch['token_level_scores']
     batch_size = data.batch.batch_size[0]
     attention_mask = data.batch['attention_mask']
-    response_mask = attention_mask[:, -response_length:]
+    if 'loss_mask' in data.batch.keys():
+        response_mask = data.batch['loss_mask'][:, -response_length:]
+    else:
+        response_mask = attention_mask[:, -response_length:]
 
     # compute kl between ref_policy and current policy
     if 'ref_log_prob' in data.batch.keys():
@@ -226,12 +229,6 @@ def compute_advantage(data: DataProto, adv_estimator, gamma=1.0, lam=1.0, num_re
         
         if "loss_mask" in data.batch.keys():
             loss_mask = data.batch['loss_mask'][:, -response_length:]
-            
-            # valid_token_level_rewards_positions = token_level_rewards[0].nonzero(as_tuple=True)[0]
-            # valid_loss_positions = loss_mask[0].nonzero(as_tuple=True)[0]
-            # print(f"[DEBUG]valid_token_level_rewards_positions={valid_token_level_rewards_positions}")
-            # print(f"[DEBUG]valid_loss_positions={valid_loss_positions}")
-            # seems here only need to replace eos_mask with loss_mask
             advantages, returns = core_algos.compute_grpo_outcome_advantage(token_level_rewards=token_level_rewards,
                                                                         eos_mask=loss_mask,
                                                                         index=index)

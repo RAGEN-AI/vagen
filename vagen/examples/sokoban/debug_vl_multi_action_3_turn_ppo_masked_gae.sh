@@ -1,6 +1,5 @@
 set -x
 
-
 export VLLM_ATTENTION_BACKEND=XFORMERS
 export PYTHONHASHSEED=0
 
@@ -17,9 +16,14 @@ python -m vagen.env.sokoban.create_dataset \
     --max_action_per_step 3 \
     --max_action_penalty -0.1 \
     --format_reward 0.5 \
-    --n_candidate 20000
+    --format_penalty -0.5 \
+    --n_candidate 20000 \
+    --force-gen
 
-# max_trajectory_length = max_prompt_length + max_response_length
+if [ $? -ne 0 ]; then
+    echo "Failed to generate dataset"
+    exit 1
+fi
 
 python3 -m vagen.trainer.main_ppo \
     algorithm.adv_estimator=masked_gae \
@@ -52,8 +56,9 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=1 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
-    actor_rollout_ref.rollout.top_p=0.95 \
     actor_rollout_ref.rollout.temperature=0.7 \
+    actor_rollout_ref.rollout.top_p=0.95 \
+    +actor_rollout_ref.ref.use_ref=True \
     critic.optim.lr=1e-5 \
     critic.model.use_remove_padding=True \
     critic.model.path=Qwen/Qwen2.5-VL-3B-Instruct \
@@ -73,8 +78,9 @@ python3 -m vagen.trainer.main_ppo \
     trainer.total_epochs=15 \
     rollout_manager.max_turns=3 \
     rollout_manager.window_size=5 \
+    rollout_manager.n_trajectory=1 \
     rollout_manager.use_multi_turn_reward=False \
+    rollout_manager.use_loss_mask=True \
     trainer.val_before_train=True \
     trainer.val_generations_to_log_to_wandb=8 \
-    rollout_manager.n_trajectory=1 \
     2>&1 | tee debug_vl_multi_action_3_turn_ppo_masked_gae.log

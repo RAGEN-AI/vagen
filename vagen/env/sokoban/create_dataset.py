@@ -30,7 +30,7 @@ class SokobanDatasetCreator(DatasetCreator):
             env_interface.env.room_state, 
             MAX_DEPTH=max_action_length,
         )
-        if len(gt_action_sequence) > max_action_length:
+        if gt_action_sequence and len(gt_action_sequence) > max_action_length:
             return seed, []
         
         # images = []
@@ -54,7 +54,7 @@ class SokobanDatasetCreator(DatasetCreator):
         force_gen: bool = False,
     ):
         """
-        Create a filtered dataset with given seeds
+        Create a filtered dataset, only keep seeds with valid action sequences
         """
         train_file_path = os.path.join(self.data_dir, 'train.parquet')
         test_file_path = os.path.join(self.data_dir, 'test.parquet')
@@ -154,17 +154,16 @@ if __name__ == "__main__":
     
     parser.add_argument('--max_action_per_step', type=int, default=1,
                         help='Maximum number of actions per step')
-    parser.add_argument('--max_action_penalty', type=float, default=-0.1,
+    parser.add_argument('--max_action_penalty', type=float, default=0,
                         help='Penalty for exceeding the maximum number of actions per step')
-    parser.add_argument('--format_reward', type=float, default=0.5,
+    parser.add_argument('--format_reward', type=float, default=0,
                         help='Reward for correct formatting')
+    parser.add_argument('--format_penalty', type=float, default=0,
+                        help='Penalty for incorrect formatting')
     
     import os
     if 'PYTHONHASHSEED' not in os.environ:
-        os.environ['PYTHONHASHSEED'] = '0'
-        print("Set PYTHONHASHSEED to 0 for reproducibility")
-    else:
-        print(f"PYTHONHASHSEED already set to {os.environ['PYTHONHASHSEED']}")
+        raise ValueError("PYTHONHASHSEED must be set for reproducibility")
     
 
     args = parser.parse_args()
@@ -180,6 +179,7 @@ if __name__ == "__main__":
         'max_action_per_step': args.max_action_per_step,
         'max_action_penalty': args.max_action_penalty,
         'format_reward': args.format_reward,
+        'format_penalty': args.format_penalty,
     }
     creator = SokobanDatasetCreator(config=vars(args))
     if args.max_action_length:
