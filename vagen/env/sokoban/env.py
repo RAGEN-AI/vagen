@@ -355,3 +355,5 @@ class SokobanInterface(BaseInterface):
     def get_traj_reward(self):
         return self.traj_reward
 
+    def success(self):
+        return self.env.success()

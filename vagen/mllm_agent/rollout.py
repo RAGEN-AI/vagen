@@ -644,6 +644,7 @@ class QwenVLRolloutManger():
         scores=[]
         images=[]
         dones=[]
+        success=[]
         for k,v in self.recorder.items():
             step=self.env_states[k]['step']
             input_str=self.envs[k].name_repr()+self.envs[k].config_repr(self.envs[k].env_config, self.envs[k].interface_config)
@@ -654,10 +655,12 @@ class QwenVLRolloutManger():
             scores.append(score)
             images.append(ouput_rst['image_data'])
             dones.append(self.env_states[k]['done'])
+            success.append(self.envs[k].success())
         return {
             "inputs": inputs,
             "outputs": outputs,
             "scores": scores,
             "images": images,
             "dones": dones,
+            "success": success,
         }
