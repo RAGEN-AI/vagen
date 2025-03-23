@@ -2,128 +2,100 @@
 Preprocess dataset for genereal tasks
 """
 
-import re
 import os
 import json
-from datasets import Dataset, load_dataset
-from random import randint, seed, choice
-from typing import List, Tuple
-from tqdm import tqdm
-from verl.utils.hdfs_io import copy, makedirs
+from datasets import Dataset
 import argparse
-import datasets
-import multiprocessing as mp
-from functools import partial
-from collections import defaultdict
-import numpy as np
+from typing_extensions import override
 
 from vagen.env.create_dataset import DatasetCreator
-from vagen.env.sokoban.env import SokobanInterface
-from vagen.env.sokoban.room_utils import get_shortest_action_path, plot_animation
-class SokobanDatasetCreator(DatasetCreator):
 
-    def _process_seed(self, seed: int, max_action_length: int = 5):
-        env_interface = SokobanInterface(self.env_config, self.interface_config)
-        env_interface.reset(seed=seed)
-        gt_action_sequence = get_shortest_action_path(
-            env_interface.env.room_fixed, 
-            env_interface.env.room_state, 
-            MAX_DEPTH=max_action_length,
-        )
-        if gt_action_sequence and len(gt_action_sequence) > max_action_length:
-            return seed, []
-        
-        # images = []
-        # obs = env_interface.env._render('rgb_array')
-        # images.append(obs)
-        # for action in gt_action_sequence:
-        #     env_interface.env._step(action)
-        #     obs = env_interface.env._render('rgb_array')
-        #     images.append(obs)
-        # animation = plot_animation(images)
-        # animation.save(f'animation_{seed}.gif')
+# TODO: now env_config is set to be absolute path of the data file
 
-        return seed, gt_action_sequence
-    
-    def create_filtered_dataset(
+class SpatialQADatasetCreator(DatasetCreator):
+
+    @override
+    def create_dataset(
         self,
-        seed: int = 0,
+        data_file: str,
         train_ratio: float = 0.8,
-        max_action_length: int = 5,
-        n_candidate: int = 20000,
         force_gen: bool = False,
+        split: str = 'train',
     ):
         """
-        Create a filtered dataset, only keep seeds with valid action sequences
+        Create a dataset in parquet format
+        Args:
+            data_file: path to the data file
+            train_ratio: ratio of train dataset
+            force_gen: force dataset generation even if files already exist
+            split: split to create
+
+        - env_config is set to be absolute path of the data file
+        - seed is set to be the index of the instance
+        - type is the type of the QA corresponding to the instance indexed by seed
         """
-        train_file_path = os.path.join(self.data_dir, 'train.parquet')
-        test_file_path = os.path.join(self.data_dir, 'test.parquet')
-        action_count = defaultdict(int)
+        train_file = os.path.join(self.data_dir, 'train.parquet')
+        test_file = os.path.join(self.data_dir, 'test.parquet')
+        with open(data_file, 'r') as f:
+            QAs = json.load(f)['QAs']
         
         # Check if files already exist and force_gen is False
-        if not force_gen and os.path.exists(train_file_path) and os.path.exists(test_file_path):
+        if not force_gen and os.path.exists(train_file) and os.path.exists(test_file):
             print(f"Dataset files already exist at {self.data_dir}. Skipping generation.")
             print(f"Use --force-gen to override and regenerate the dataset.")
             return
-
-        num_processes = mp.cpu_count()
-        print(f"Using {num_processes} processes for seed processing")
-        pool = mp.Pool(processes=num_processes)
-        process_seed_partial = partial(self._process_seed, max_action_length=max_action_length)
-        seeds = range(seed, seed + n_candidate)
-        results = list(tqdm(pool.imap(process_seed_partial, seeds), total=len(seeds), desc="Processing seeds"))
-        pool.close()
-        pool.join()
-
-        valid_seeds_with_actions = [(seed, gt_action_sequence) for seed, gt_action_sequence in results if gt_action_sequence and len(gt_action_sequence) <= max_action_length]
-        valid_seeds = [seed for seed, _ in valid_seeds_with_actions]
-        train_size = int(len(valid_seeds) * train_ratio)
-        test_size = len(valid_seeds) - train_size
-        print(f"Train size: {train_size}, Test size: {test_size}")
-        # Analyze statistics of action sequences
-        action_lengths = [len(gt_action_sequence) for _, gt_action_sequence in valid_seeds_with_actions]
-        for _, gt_action_sequence in valid_seeds_with_actions:
-            for action in gt_action_sequence:
-                action_count[action] += 1
         
-
-
-        # Calculate basic statistics
-        avg_length = np.mean(action_lengths) if action_lengths else 0
-        median_length = np.median(action_lengths) if action_lengths else 0
-        min_length = min(action_lengths) if action_lengths else 0
-        max_length = max(action_lengths) if action_lengths else 0
+        os.makedirs(self.data_dir, exist_ok=True)
         
-        # Count frequency of each action length
-        length_counts = {}
-        for length in action_lengths:
-            length_counts[length] = length_counts.get(length, 0) + 1
-        
-        # Calculate percentage of valid seeds
-        valid_percentage = (len(valid_seeds) / n_candidate) * 100
-        
-        # Print statistics
-        print("\nAction Sequence Statistics:")
-        print(f"Total candidates processed: {n_candidate}")
-        print(f"Valid seeds found: {len(valid_seeds)} ({valid_percentage:.2f}%)")
-        print(f"Average action length: {avg_length:.2f}")
-        print(f"Median action length: {median_length}")
-        print(f"Min action length: {min_length}")
-        print(f"Max action length: {max_length}")
-        print("\nAction length distribution:")        
-        for length in sorted(length_counts.keys()):
-            count = length_counts[length]
-            percentage = (count / len(action_lengths)) * 100
-            print(f"  Length {length}: {count} instances ({percentage:.2f}%)")
-        
-        print("\nAction frequency:")
-        for action, count in sorted(action_count.items(), key=lambda x: x[1], reverse=True):
-            percentage = (count / len(valid_seeds_with_actions)) * 100
-            print(f"  {action}: {count} instances ({percentage:.2f}%)")
+        def _create_instance(idx):
+            # Create env_config with type and QAs for this type
+            qa_dict = QAs[idx]
+            qa_type = qa_dict['type']
+            env_config = {
+                'type': qa_type,
+                'data_path': os.path.abspath(data_file)
+            }
+            
+            env_settings = {
+                'env_name': self.env_name,
+                'env_config': env_config,
+                'interface_config': self.interface_config,
+                'seed': idx
+            }
+            print(env_config)
 
+            # TODO: no reward model defined here for the reward will be generated while rollout
+            return {
+                "data_source": self.env_name,
+                "prompt": [{"role": "user", "content": ''}],
+                "extra_info": {"split": split, **env_settings}
+            }
+        
+        
+        # Calculate split indices based on train_ratio
+        num_total = len(QAs)
+        num_train = int(num_total * train_ratio)
+        
+        # Create instances for train and test splits
+        train_instances = [_create_instance(i) for i in range(num_train)]
+        test_instances = [_create_instance(i) for i in range(num_train, num_total)]
+        
+        train_dataset = Dataset.from_list(train_instances)
+        test_dataset = Dataset.from_list(test_instances)
 
+        def make_map_fn(split):
+            def process_fn(example, idx):
+                return example
+            return process_fn
+        
+        train_dataset = train_dataset.map(function=make_map_fn('train'), with_indices=True)
+        test_dataset = test_dataset.map(function=make_map_fn('test'), with_indices=True)
 
-        self.create_dataset(valid_seeds, train_size, test_size, force_gen=force_gen)
+        train_dataset.to_parquet(train_file)
+        test_dataset.to_parquet(test_file)
+        print(f"Dataset successfully generated at {self.data_dir}")
+
+        
 
 
 
@@ -133,25 +105,16 @@ class SokobanDatasetCreator(DatasetCreator):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--start_seed', type=int, default=0)
-    parser.add_argument('--train_ratio', type=float, default=0.8)
-    parser.add_argument('--n_candidate', type=int, default=20000)
-    parser.add_argument('--max_action_length', type=int, default=None)
     parser.add_argument('--force-gen', action='store_true', 
                         help='Force dataset generation even if files already exist')
-    parser.add_argument('--data_dir', type=str, default='data/sokoban',)
+    parser.add_argument('--train_ratio', type=float, default=0.8,
+                        help='Ratio of train dataset')
+    parser.add_argument('--data_dir', type=str, default='data/spatial_qa',)
 
-    parser.add_argument('--dim_room', type=int, nargs=2, default=[6, 6],
-                        help='Dimensions of the room [height, width]')
-    parser.add_argument('--num_boxes', type=int, default=1,
-                        help='Number of boxes in the environment')
-    parser.add_argument('--max_steps', type=int, default=100,
-                        help='Maximum number of steps allowed')
-    parser.add_argument('--search_depth', type=int, default=30,
-                        help='Search depth that affects the starting position of the player')
-    parser.add_argument('--visual_env', action='store_true',
-                        help='Whether to use visual environment')
+    # env_config
+    parser.add_argument('--qa_data_file', type=str, default='data/spatial_qa/spatial_qa.json',)
     
+    # interface_config
     parser.add_argument('--max_action_per_step', type=int, default=1,
                         help='Maximum number of actions per step')
     parser.add_argument('--max_action_penalty', type=float, default=0,
@@ -161,40 +124,19 @@ if __name__ == "__main__":
     parser.add_argument('--format_penalty', type=float, default=0,
                         help='Penalty for incorrect formatting')
     
-    import os
-    if 'PYTHONHASHSEED' not in os.environ:
-        raise ValueError("PYTHONHASHSEED must be set for reproducibility")
-    
 
     args = parser.parse_args()
-    args.name = 'sokoban'
-    args.env_config = {
-        'dim_room': args.dim_room,
-        'num_boxes': args.num_boxes,
-        'max_steps': args.max_steps,
-        'search_depth': args.search_depth,
-        'visual_env': args.visual_env
-    }
+    args.name = 'spatial_qa'
+    args.env_config = {}
     args.interface_config = {
         'max_action_per_step': args.max_action_per_step,
         'max_action_penalty': args.max_action_penalty,
         'format_reward': args.format_reward,
         'format_penalty': args.format_penalty,
     }
-    creator = SokobanDatasetCreator(config=vars(args))
-    if args.max_action_length:
-        creator.create_filtered_dataset(
-            seed=args.start_seed,
-            train_ratio=args.train_ratio,
-            max_action_length=args.max_action_length,
-            n_candidate=args.n_candidate,
-            force_gen=args.force_gen
-        )
-    else:
-        train_size = int(args.train_ratio * args.n_candidate)
-        test_size = args.n_candidate - train_size
-        creator.create_dataset(
-            seed=args.start_seed,
-            train_size=train_size,
-            test_size=test_size,
-            force_gen=args.force_gen)
+    creator = SpatialQADatasetCreator(config=vars(args))
+
+    creator.create_dataset(
+        data_file=args.qa_data_file,
+        train_ratio=args.train_ratio,
+        force_gen=args.force_gen)

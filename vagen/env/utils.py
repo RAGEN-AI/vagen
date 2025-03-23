@@ -7,7 +7,11 @@ from typing import List, Dict, Tuple, Union
 
 
 
-def preprocess_text(text: str, strict_match: bool = True) -> dict:
+def preprocess_text(
+        text: str, 
+        strict_match: bool = True,
+        answer_sep: str = ",",
+    ) -> dict:
     """Preprocess the raw text from llm to a list of strings.
     
     Args:
@@ -16,6 +20,7 @@ def preprocess_text(text: str, strict_match: bool = True) -> dict:
                      <think>...</think> followed by one <answer>...</answer> with possible 
                      whitespace between them. No content should appear before <think> or 
                      after </answer>.
+        answer_sep: Separator for the answer list
 
     Returns:
         dict with keys: llm_raw_response, think, answer_list
@@ -58,7 +63,7 @@ def preprocess_text(text: str, strict_match: bool = True) -> dict:
         # Get the answer content and split by comma
         answer_content = answer_match.group(1).strip()
         # Split by comma and strip whitespace from each item
-        answer_list = [item.strip() for item in answer_content.split(',') if item.strip()]
+        answer_list = [item.strip() for item in answer_content.split(answer_sep) if item.strip()]
     
     return {
         'llm_raw_response': text,
@@ -96,7 +101,12 @@ class PreprocessResult:
             'llm_raw_response': self.llm_raw_response,
         }
 
-def preprocess(text: str, extract_action_func, invalid_action_code=0) -> PreprocessResult:
+def preprocess(
+        text: str, 
+        extract_action_func, 
+        invalid_action_code=0,
+        answer_sep: str = ",",
+    ) -> PreprocessResult:
     """Preprocess the raw text from LLM into a list of actions.
     
     Args:
@@ -104,11 +114,12 @@ def preprocess(text: str, extract_action_func, invalid_action_code=0) -> Preproc
         extract_action_func: Function to extract action from text, should return action ID or invalid_action_code
             Function signature: extract_action_func(text: str) -> int
         invalid_action_code: Code representing an invalid action (default: 0)
+        answer_sep: Separator for the answer list
 
     Returns:
         PreprocessResult containing parsed valid actions
     """
-    parsed_text = preprocess_text(text)
+    parsed_text = preprocess_text(text, answer_sep=answer_sep)
     
     # Process actions until first invalid action
     action_list = []
