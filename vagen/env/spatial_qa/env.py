@@ -13,6 +13,7 @@ from vagen.env.base import (
 
 from vagen.env.utils import preprocess
 from vagen.env.spatial_qa.QA import QA
+from vagen.env.spatial_qa.prompt import instruction_template
 
 """
 For each environment, we use env_config to create the env. One env_config corresponds to a set of envs.
@@ -38,6 +39,7 @@ class SpatialQAEnv(BaseEnv):
             self.QAs = json.load(f)['QAs']
         self.qa = None
         self.is_finished = False
+        self.is_correct = False
         self.type = type
 
     def _reset(self, seed: int):
@@ -53,11 +55,13 @@ class SpatialQAEnv(BaseEnv):
         
         self.qa = qa
         self.is_finished = False
+        self.is_correct = False
         return qa.question, {}
     
     def _step(self, action: str):
         assert not self.is_finished
         if_correct = self.qa.evaluate(action)
+        self.is_correct = if_correct
         self.is_finished = True
         return "You have finished the task", if_correct, self.is_finished, {}
      
@@ -76,7 +80,7 @@ class SpatialQAEnv(BaseEnv):
         return self.is_finished
     
     def success(self):
-        return self.is_finished
+        return self.is_finished and self.is_correct
 
 
 
@@ -212,8 +216,13 @@ class SpatialQAInterface(BaseInterface):
         )
         return f"{env_config_str}, {interface_config_str}"
     def get_task_instruction(self) -> str:
-        return self.env.env._render(mode='text')
+        return instruction_template.format(
+            format_reward=self.interface_config['format_reward'],
+            format_penalty=self.interface_config['format_penalty'],
+        )
     
     def get_traj_reward(self):
         return self.traj_reward
 
+    def success(self):
+        return self.env.success()
