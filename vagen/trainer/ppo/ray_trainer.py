@@ -744,7 +744,7 @@ class RayPPOTrainer(object):
         sample_scores = []
         sample_images = []
         sample_dones=[]
-        
+        sample_success=[]
         if self.test_rollout_manager==None:
             self.test_rollout_manager = QwenVLRolloutManger(
                 actor_rollout_wg=self.actor_rollout_wg,
@@ -784,6 +784,7 @@ class RayPPOTrainer(object):
             sample_scores.extend(rst['scores'])
             sample_images.extend(rst['images'])
             sample_dones.extend(rst['dones'])
+            sample_success.extend(rst['success'])
         
         self._maybe_log_val_generations_to_wandb(inputs=sample_inputs, outputs=sample_outputs, scores=sample_scores, images=sample_images)
         metric_dict = {}
@@ -796,10 +797,14 @@ class RayPPOTrainer(object):
         
         
         data_source_done = defaultdict(list)
-        for data_source, dones in zip(sample_inputs, sample_dones):
+        data_source_success = defaultdict(list)
+        for data_source, dones, success in zip(sample_inputs, sample_dones, sample_success):
             data_source_done[data_source].append(dones)
+            data_source_success[data_source].append(success)
         for data_source, dones in data_source_done.items():
             metric_dict[f'val/test_done/{data_source}'] = np.mean(dones)
+        for data_source, success in data_source_success.items():
+            metric_dict[f'val/test_success/{data_source}'] = np.mean(success)
         print(f"[DEBUG] validation at global step {self.global_steps} ends")
         return metric_dict
 
@@ -1098,11 +1103,14 @@ class RayPPOTrainer(object):
                         for data_source, rewards in data_source_reward.items():
                             metrics[f'train/score/{data_source}'] = np.mean(rewards)
 
-                        data_source_done = defaultdict(list)
-                        for data_source, dones in zip(rst["inputs"], rst["dones"]):
+                        data_source_done, data_source_success = defaultdict(list), defaultdict(list)
+                        for data_source, dones, success in zip(rst["inputs"], rst["dones"], rst["success"]):
                             data_source_done[data_source].append(dones)
+                            data_source_success[data_source].append(success)
                         for data_source, dones in data_source_done.items():
                             metrics[f'train/done/{data_source}'] = np.mean(dones)
+                        for data_source, success in data_source_success.items():
+                            metrics[f'train/success/{data_source}'] = np.mean(success)
                     print(f"[DEBUG] step {self.global_steps} rollout ends")
                     
                     # VAGEN: This is moved to before rollout because we don't use vllm n sample param for grpo due to multi-turn nature of our method

@@ -169,5 +169,12 @@ class BaseInterface(ABC):
     @abstractmethod
     def get_traj_reward(self) -> float:
         """Get the reward of the environment."""
+
+    @abstractmethod
+    def success(self) -> bool:
+        """Check if the environment is successful."""
+        pass
+
+    
     
 
