@@ -9,8 +9,8 @@ python -m vagen.env.spatial_qa.create_dataset \
     --train_ratio 0.8 \
     --max_action_per_step 1 \
     --max_action_penalty 0.0 \
-    --format_reward 0 \
-    --format_penalty -0.5 \
+    --format_reward 0.1 \
+    --format_penalty 0\
     --force-gen
 
 if [ $? -ne 0 ]; then
@@ -25,8 +25,8 @@ python3 -m vagen.trainer.main_ppo \
     data.val_files=data/spatial_qa/test.parquet \
     data.train_batch_size=128 \
     data.max_prompt_length=512 \
-    data.max_response_length=256 \
-    data.max_trajectory_length=1024 \
+    data.max_response_length=128 \
+    data.max_trajectory_length=640 \
     data.image_key=images \
     actor_rollout_ref.model.path=Qwen/Qwen2.5-0.5B-Instruct \
     actor_rollout_ref.actor.optim.lr=1e-6 \
@@ -63,17 +63,18 @@ python3 -m vagen.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='spatial_qa' \
-    trainer.experiment_name='spatial_qa_ppo_0.5B_masked_gae_temp_0.7_top_p_0.95' \
+    trainer.experiment_name='spatial_qa_mased_gae_masked_loss' \
     trainer.n_gpus_per_node=1 \
     trainer.nnodes=1 \
-    trainer.save_freq=100 \
+    trainer.save_freq=200 \
     trainer.test_freq=10 \
     trainer.total_epochs=15 \
     trainer.val_before_train=True \
     trainer.val_generations_to_log_to_wandb=8 \
     rollout_manager.max_turns=1 \
     rollout_manager.window_size=5 \
-    rollout_manager.n_trajectory=1 \
     rollout_manager.use_multi_turn_reward=False \
     rollout_manager.use_loss_mask=True \
-    2>&1 | tee spatial_qa_ppo_0.5B_masked_gae_temp_0.7_top_p_0.95.log
+    rollout_manager.use_gae_mask=True \
+    rollout_manager.n_trajectory=1 \
+    2>&1 | tee spatial_qa_mased_gae_masked_loss.log

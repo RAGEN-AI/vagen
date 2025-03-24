@@ -159,24 +159,24 @@ class SpatialQAInterface(BaseInterface):
 
 
         # parse format and action list
-        if action_list:
-            reward += self.interface_config['format_reward']
-        else:
+        if not action_list:
             reward += self.interface_config['format_penalty']
-        if len(action_list) > self.interface_config['max_action_per_step']:
-            reward += self.interface_config['max_action_penalty']
-            action_list = action_list[:self.interface_config['max_action_per_step']]
-            preprocess_result.action_list = action_list
+            env_state = "Invalid answer"
+            done = True
+            info = {}
             
+        else:
+            reward += self.interface_config['format_reward']
+            if len(action_list) > self.interface_config['max_action_per_step']:
+                reward += self.interface_config['max_action_penalty']
+                action_list = action_list[:self.interface_config['max_action_per_step']]
+                preprocess_result.action_list = action_list
+            _, env_reward, done, info = self.env.step(action_list[0])
+            reward += env_reward
+            env_state = self.env._render(mode='text')
 
-        info = {}
-        _, env_reward, done, info = self.env.step(action_list[0])
-        reward += env_reward
         self.traj_reward += reward
         final_info.update(info) # NOTE currently only use the last step info
-
-        env_state = self.env._render(mode='text')
-
         return {"text_template": env_state}, reward, done, final_info
     
     def _reset(self, seed: Optional[int] = None) -> Tuple[Dict, Dict]:
