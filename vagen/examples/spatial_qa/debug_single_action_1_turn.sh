@@ -62,7 +62,7 @@ python3 -m vagen.trainer.main_ppo \
     algorithm.kl_ctrl.kl_coef=0.001 \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
-    trainer.project_name='vagen' \
+    trainer.project_name='spatial_qa' \
     trainer.experiment_name='spatial_qa_ppo_0.5B_masked_gae_temp_0.7_top_p_0.95' \
     trainer.n_gpus_per_node=1 \
     trainer.nnodes=1 \
