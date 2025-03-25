@@ -2,36 +2,34 @@ set -x
 
 
 export VLLM_ATTENTION_BACKEND=XFORMERS
-export PYTHONHASHSEED=0
 
-python -m vagen.env.sokoban.create_dataset \
-    --data_dir data/sokoban-text-6-step \
-    --max_action_length 6 \
-    --dim_room 6 6 \
-    --num_boxes 1 \
-    --max_steps 100 \
-    --search_depth 30 \
-    --start_seed 0 \
+python -m vagen.env.spatial_qa.create_dataset \
+    --data_dir data/spatial_qa \
+    --qa_data_file ../SpatialQA/data/exploration.json \
     --train_ratio 0.8 \
-    --max_action_per_step 3 \
-    --max_action_penalty -0.1 \
-    --format_reward 0.5 \
-    --n_candidate 20000
+    --max_action_per_step 1 \
+    --max_action_penalty 0.0 \
+    --format_reward 0.1 \
+    --format_penalty 0\
+    --force-gen
 
-# max_trajectory_length = max_prompt_length + max_response_length
+if [ $? -ne 0 ]; then
+    echo "Failed to generate dataset"
+    exit 1
+fi
 
 python3 -m vagen.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     algorithm.high_level_gamma=0.95 \
-    data.train_files=data/sokoban-text-6-step/train.parquet \
-    data.val_files=data/sokoban-text-6-step/test.parquet \
+    data.train_files=data/spatial_qa/train.parquet \
+    data.val_files=data/spatial_qa/test.parquet \
     data.train_batch_size=16 \
-    data.max_prompt_length=1024 \
+    data.max_prompt_length=512 \
     data.max_response_length=128 \
-    data.max_trajectory_length=1800 \
+    data.max_trajectory_length=640 \
     data.image_key=images \
     data.truncation=left \
-    actor_rollout_ref.model.path=Qwen/Qwen2.5-1.5B-Instruct \
+    actor_rollout_ref.model.path=Qwen/Qwen2.5-0.5B-Instruct \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=False \
     actor_rollout_ref.actor.ppo_mini_batch_size=32 \
@@ -43,7 +41,7 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.actor.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
-    actor_rollout_ref.rollout.tensor_model_parallel_size=2 \
+    actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.4 \
     actor_rollout_ref.rollout.enable_chunked_prefill=False \
@@ -57,18 +55,18 @@ python3 -m vagen.trainer.main_ppo \
     algorithm.kl_ctrl.kl_coef=0.001 \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
-    trainer.project_name='vagen-text' \
-    trainer.experiment_name='grpo_1_5B' \
-    trainer.n_gpus_per_node=2 \
+    trainer.project_name='spatial_qa' \
+    trainer.experiment_name='grpo_mask_loss_0_5B' \
+    trainer.n_gpus_per_node=1 \
     trainer.nnodes=1 \
-    trainer.save_freq=100 \
+    trainer.save_freq=200 \
     trainer.test_freq=10 \
     trainer.total_epochs=15 \
-    rollout_manager.max_turns=3 \
+    rollout_manager.max_turns=1 \
     rollout_manager.window_size=5 \
     rollout_manager.use_multi_turn_reward=False \
-    rollout_manager.use_loss_mask=False \
+    rollout_manager.use_loss_mask=True \
     trainer.val_before_train=True \
     trainer.val_generations_to_log_to_wandb=8 \
     rollout_manager.n_trajectory=8 \
-    2>&1 | tee grpo_1_5B.log
+    2>&1 | tee grpo_mask_loss.log

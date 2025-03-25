@@ -1,7 +1,6 @@
 set -x
 
 export VLLM_ATTENTION_BACKEND=XFORMERS
-export PYTHONHASHSEED=0
 
 python -m vagen.env.spatial_qa.create_dataset \
     --data_dir data/spatial_qa \
@@ -42,7 +41,7 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
-    actor_rollout_ref.rollout.gpu_memory_utilization=0.4 \
+    actor_rollout_ref.rollout.gpu_memory_utilization=0.1 \
     actor_rollout_ref.rollout.enable_chunked_prefill=False \
     actor_rollout_ref.rollout.enforce_eager=False \
     actor_rollout_ref.rollout.free_cache_engine=False \
@@ -63,7 +62,7 @@ python3 -m vagen.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='spatial_qa' \
-    trainer.experiment_name='spatial_qa_mased_gae_masked_loss' \
+    trainer.experiment_name='mased_gae_masked_loss' \
     trainer.n_gpus_per_node=1 \
     trainer.nnodes=1 \
     trainer.save_freq=200 \
@@ -77,4 +76,4 @@ python3 -m vagen.trainer.main_ppo \
     rollout_manager.use_loss_mask=True \
     rollout_manager.use_gae_mask=True \
     rollout_manager.n_trajectory=1 \
-    2>&1 | tee spatial_qa_mased_gae_masked_loss.log
+    2>&1 | tee mased_gae_masked_loss.log

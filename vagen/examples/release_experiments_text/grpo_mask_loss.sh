@@ -54,13 +54,6 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     actor_rollout_ref.rollout.top_p=0.95 \
     actor_rollout_ref.rollout.temperature=0.7 \
-    critic.optim.lr=1e-5 \
-    critic.model.use_remove_padding=False \
-    critic.model.path=Qwen/Qwen2.5-1.5B-Instruct \
-    critic.model.enable_gradient_checkpointing=True \
-    critic.ppo_micro_batch_size_per_gpu=1 \
-    critic.model.fsdp_config.param_offload=False \
-    critic.model.fsdp_config.optimizer_offload=False \
     algorithm.kl_ctrl.kl_coef=0.001 \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
