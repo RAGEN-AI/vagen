@@ -17,6 +17,8 @@ init_observation_template = """
 [Initial Observation]:
 {observation}
 Decide your next action(s).
+Respond with:
+<think>...</think><answer>...</answer>
 """
 
 valid_action_template = """Valid action extracted from your response is {valid_action}.\
@@ -25,6 +27,8 @@ After that, the observation is:
 reward: {reward}
 done: {done}
 Decide your next action(s).
+Respond with:
+<think>...</think><answer>...</answer>
 """
 
 invalid_action_template = """Invalid response. You stay at the same position.
@@ -33,4 +37,6 @@ The observation is:
 reward: {reward}
 done: {done}
 Decide your next action(s).
+Respond with:
+<think>...</think><answer>...</answer>
 """
