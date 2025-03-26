@@ -3,8 +3,8 @@ set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS
 
 python -m vagen.env.spatial_qa.create_dataset \
-    --data_dir data/spatial_qa/exploration \
-    --qa_data_file ../SpatialQA/data/exploration.json \
+    --data_dir data/spatial_qa/evaluation \
+    --qa_data_file ../SpatialQA/data/evaluation.json \
     --train_ratio 0.8 \
     --max_action_per_step 1 \
     --max_action_penalty 0.0 \
@@ -20,8 +20,8 @@ fi
 python3 -m vagen.trainer.main_ppo \
     algorithm.adv_estimator=masked_gae \
     algorithm.high_level_gamma=0.95 \
-    data.train_files=data/spatial_qa/exploration/train.parquet \
-    data.val_files=data/spatial_qa/exploration/test.parquet \
+    data.train_files=data/spatial_qa/evaluation/train.parquet \
+    data.val_files=data/spatial_qa/evaluation/test.parquet \
     data.train_batch_size=128 \
     data.max_prompt_length=512 \
     data.max_response_length=128 \
@@ -62,7 +62,7 @@ python3 -m vagen.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='spatial_qa' \
-    trainer.experiment_name='mased_gae_masked_loss_exploration_qa' \
+    trainer.experiment_name='mased_gae_masked_loss_evaluation_qa' \
     trainer.n_gpus_per_node=2 \
     trainer.nnodes=1 \
     trainer.save_freq=200 \
@@ -76,4 +76,4 @@ python3 -m vagen.trainer.main_ppo \
     rollout_manager.use_loss_mask=True \
     rollout_manager.use_gae_mask=True \
     rollout_manager.n_trajectory=1 \
-    2>&1 | tee mased_gae_masked_loss_exploration_qa.log
+    2>&1 | tee mased_gae_masked_loss_evaluation_qa.log
