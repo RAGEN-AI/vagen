@@ -62,7 +62,6 @@ class SpatialQADatasetCreator(DatasetCreator):
                 'interface_config': self.interface_config,
                 'seed': idx
             }
-            print(env_config)
 
             # TODO: no reward model defined here for the reward will be generated while rollout
             return {

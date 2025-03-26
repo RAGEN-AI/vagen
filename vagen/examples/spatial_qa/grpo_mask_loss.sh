@@ -5,7 +5,7 @@ export VLLM_ATTENTION_BACKEND=XFORMERS
 
 python -m vagen.env.spatial_qa.create_dataset \
     --data_dir data/spatial_qa \
-    --qa_data_file ../SpatialQA/data/exploration.json \
+    --qa_data_file ../SpatialQA/data/exploration_EgoSS_training.json \
     --train_ratio 0.8 \
     --max_action_per_step 1 \
     --max_action_penalty 0.0 \
@@ -23,7 +23,7 @@ python3 -m vagen.trainer.main_ppo \
     algorithm.high_level_gamma=0.95 \
     data.train_files=data/spatial_qa/train.parquet \
     data.val_files=data/spatial_qa/test.parquet \
-    data.train_batch_size=16 \
+    data.train_batch_size=64 \
     data.max_prompt_length=512 \
     data.max_response_length=128 \
     data.max_trajectory_length=640 \
@@ -52,6 +52,7 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     actor_rollout_ref.rollout.top_p=0.95 \
     actor_rollout_ref.rollout.temperature=0.7 \
+    +actor_rollout_ref.ref.use_ref=True \
     algorithm.kl_ctrl.kl_coef=0.001 \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
@@ -68,5 +69,5 @@ python3 -m vagen.trainer.main_ppo \
     rollout_manager.use_loss_mask=True \
     trainer.val_before_train=True \
     trainer.val_generations_to_log_to_wandb=8 \
-    rollout_manager.n_trajectory=8 \
+    rollout_manager.n_trajectory=2 \
     2>&1 | tee grpo_mask_loss.log
