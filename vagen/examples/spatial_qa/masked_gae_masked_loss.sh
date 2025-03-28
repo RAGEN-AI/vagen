@@ -9,7 +9,7 @@ python -m vagen.env.spatial_qa.create_dataset \
     --max_action_per_step 1 \
     --max_action_penalty 0.0 \
     --format_reward 0.1 \
-    --format_penalty 0\
+    --format_penalty -0.1 \
     --force-gen
 
 if [ $? -ne 0 ]; then
@@ -46,8 +46,8 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.rollout.enforce_eager=False \
     actor_rollout_ref.rollout.free_cache_engine=False \
     actor_rollout_ref.rollout.n=1 \
-    actor_rollout_ref.rollout.temperature=0.7 \
-    actor_rollout_ref.rollout.top_p=0.95 \
+    actor_rollout_ref.rollout.temperature=1 \
+    actor_rollout_ref.rollout.top_p=1 \
     +actor_rollout_ref.ref.use_ref=True \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=1 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
