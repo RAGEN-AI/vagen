@@ -3,8 +3,8 @@ set -x
 export VLLM_ATTENTION_BACKEND=XFORMERS
 
 python -m vagen.env.spatial_qa.create_dataset \
-    --data_dir data/spatial_qa/exploration \
-    --qa_data_file ../SpatialQA/data/exploration.json \
+    --data_dir data/spatial_qa/evaluation/EgoDirectionSS \
+    --qa_data_file ../SpatialQA/data/evaluation/EgoDirectionSS.json \
     --train_ratio 0.8 \
     --max_action_per_step 1 \
     --max_action_penalty 0.0 \
@@ -20,14 +20,14 @@ fi
 python3 -m vagen.trainer.main_ppo \
     algorithm.adv_estimator=masked_gae \
     algorithm.high_level_gamma=0.95 \
-    data.train_files=data/spatial_qa/exploration/train.parquet \
-    data.val_files=data/spatial_qa/exploration/test.parquet \
+    data.train_files=data/spatial_qa/evaluation/EgoDirectionSS/train.parquet \
+    data.val_files=data/spatial_qa/evaluation/EgoDirectionSS/test.parquet \
     data.train_batch_size=128 \
-    data.max_prompt_length=512 \
-    data.max_response_length=128 \
-    data.max_trajectory_length=640 \
+    data.max_prompt_length=768 \
+    data.max_response_length=256 \
+    data.max_trajectory_length=1024 \
     data.image_key=images \
-    actor_rollout_ref.model.path=Qwen/Qwen2.5-1.5B-Instruct \
+    actor_rollout_ref.model.path=Qwen/Qwen2.5-3B-Instruct \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=False \
     actor_rollout_ref.actor.ppo_mini_batch_size=32 \
@@ -39,7 +39,7 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.actor.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
-    actor_rollout_ref.rollout.tensor_model_parallel_size=2 \
+    actor_rollout_ref.rollout.tensor_model_parallel_size=4 \
     actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.4 \
     actor_rollout_ref.rollout.enable_chunked_prefill=False \
@@ -53,7 +53,7 @@ python3 -m vagen.trainer.main_ppo \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     critic.optim.lr=1e-5 \
     critic.model.use_remove_padding=False \
-    critic.model.path=Qwen/Qwen2.5-1.5B-Instruct \
+    critic.model.path=Qwen/Qwen2.5-3B-Instruct \
     critic.model.enable_gradient_checkpointing=True \
     critic.ppo_micro_batch_size_per_gpu=1 \
     critic.model.fsdp_config.param_offload=False \
@@ -62,18 +62,18 @@ python3 -m vagen.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='spatial_qa' \
-    trainer.experiment_name='mased_gae_masked_loss_exploration_qa' \
-    trainer.n_gpus_per_node=2 \
+    trainer.experiment_name='mased_gae_masked_loss_evaluation_qa_EgoDirectionSS' \
+    trainer.n_gpus_per_node=4 \
     trainer.nnodes=1 \
-    trainer.save_freq=200 \
+    trainer.save_freq=50 \
     trainer.test_freq=10 \
     trainer.total_epochs=15 \
     trainer.val_before_train=True \
-    trainer.val_generations_to_log_to_wandb=8 \
+    trainer.val_generations_to_log_to_wandb=32 \
     rollout_manager.max_turns=1 \
     rollout_manager.window_size=5 \
     rollout_manager.use_multi_turn_reward=False \
     rollout_manager.use_loss_mask=True \
     rollout_manager.use_gae_mask=True \
     rollout_manager.n_trajectory=1 \
-    2>&1 | tee mased_gae_masked_loss_exploration_qa.log
+    2>&1 | tee mased_gae_masked_loss_evaluation_qa_EgoDirectionSS.log
